@@ -1,33 +1,24 @@
-name: Invoke fre-price-snapshot
+name: fre-price-snapshot
 
 on:
-  schedule:
-    - cron: '*/1 * * * *'
   workflow_dispatch:
+  schedule:
+    - cron: "*/1 * * * *"   # toutes les minutes
 
 jobs:
-  invoke:
+  run-edge-function:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Call Supabase Edge Function
         env:
-          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
-          PROJECT_REF: lwkfxyruvhezakwcpcco
+          SUPABASE_FUNCTION_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          URL="https://${PROJECT_REF}.functions.supabase.co/fre-price-snapshot"
-
-          RESPONSE=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
-            -X POST "$URL" \
+          curl -X POST "$SUPABASE_FUNCTION_URL" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
-            -d '{"run": true}')
-
-          echo "HTTP Status: $RESPONSE"
-          cat /tmp/resp.json
-
-      - name: Upload Response
-        uses: actions/upload-artifact@v4
-        with:
-          name: fre-price-snapshot-response
-          path: /tmp/resp.json
+            -d '{"run": true}'
